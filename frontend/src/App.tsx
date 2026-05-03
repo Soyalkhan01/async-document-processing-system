@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
+const API_URL = import.meta.env.VITE_API_URL;
+
 function App() {
   const [documents, setDocuments] = useState<any[]>([]);
   const [file, setFile] = useState<File | null>(null);
@@ -15,16 +17,16 @@ function App() {
   const [editedData, setEditedData] = useState("");
 
   const [loading, setLoading] = useState(false);
-  const [progressData, setProgressData] =
-  useState<any>({});
 
-  // Fetch documents
+  const [progressData, setProgressData] =
+    useState<any>({});
+
   const fetchDocuments = async () => {
     try {
       setLoading(true);
 
       const response = await axios.get(
-        `http://127.0.0.1:8000/documents?search=${search}&status=${status}&sort_by=${sortBy}`
+        `${API_URL}/documents?search=${search}&status=${status}&sort_by=${sortBy}`
       );
 
       setDocuments(response.data);
@@ -35,7 +37,6 @@ function App() {
     }
   };
 
-  // Auto refresh every 3 sec
   useEffect(() => {
     fetchDocuments();
 
@@ -47,46 +48,27 @@ function App() {
   }, [search, status, sortBy]);
 
   useEffect(() => {
-
-  const interval = setInterval(
-    async () => {
-
+    const interval = setInterval(async () => {
       try {
+        const response = await axios.get(
+          `${API_URL}/progress`
+        );
 
-        const response =
-          await axios.get(
-            "http://127.0.0.1:8000/progress"
-          );
-
-        if (
-          response.data.document_id
-        ) {
-
-          setProgressData(
-            (prev: any) => ({
-              ...prev,
-
-              [response.data.document_id]:
-                response.data
-            })
-          );
+        if (response.data.document_id) {
+          setProgressData((prev: any) => ({
+            ...prev,
+            [response.data.document_id]:
+              response.data,
+          }));
         }
-
       } catch (error) {
-
         console.log(error);
-
       }
+    }, 2000);
 
-    },
-    2000
-  );
+    return () => clearInterval(interval);
+  }, []);
 
-  return () =>
-    clearInterval(interval);
-
-}, []);
-  // Upload file
   const handleUpload = async () => {
     if (!file) return;
 
@@ -96,8 +78,14 @@ function App() {
 
     try {
       await axios.post(
-        "http://127.0.0.1:8000/upload",
-        formData
+        `${API_URL}/upload`,
+        formData,
+        {
+          headers: {
+            "Content-Type":
+              "multipart/form-data",
+          },
+        }
       );
 
       alert("File uploaded successfully");
@@ -110,11 +98,12 @@ function App() {
     }
   };
 
-  // View document detail
-  const viewDocumentDetail = async (id: number) => {
+  const viewDocumentDetail = async (
+    id: number
+  ) => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/documents/${id}`
+        `${API_URL}/documents/${id}`
       );
 
       setSelectedDocument(response.data);
@@ -129,13 +118,12 @@ function App() {
     }
   };
 
-  // Update document
   const updateDocument = async () => {
     if (!selectedDocument) return;
 
     try {
       await axios.put(
-        `http://127.0.0.1:8000/documents/${selectedDocument.id}`,
+        `${API_URL}/documents/${selectedDocument.id}`,
         {
           extracted_data: editedData,
         }
@@ -153,13 +141,12 @@ function App() {
     }
   };
 
-  // Finalize document
   const finalizeDocument = async () => {
     if (!selectedDocument) return;
 
     try {
       await axios.put(
-        `http://127.0.0.1:8000/documents/${selectedDocument.id}/finalize`
+        `${API_URL}/documents/${selectedDocument.id}/finalize`
       );
 
       alert("Document finalized");
@@ -174,8 +161,9 @@ function App() {
     }
   };
 
-  // Delete document
-  const deleteDocument = async (id: number) => {
+  const deleteDocument = async (
+    id: number
+  ) => {
     const confirmDelete = window.confirm(
       "Are you sure you want to delete this document?"
     );
@@ -184,7 +172,7 @@ function App() {
 
     try {
       await axios.delete(
-        `http://127.0.0.1:8000/documents/${id}`
+        `${API_URL}/documents/${id}`
       );
 
       alert("Document deleted");
@@ -201,28 +189,26 @@ function App() {
       console.log(error);
     }
   };
-const retryDocument = async (
-  id: number
-) => {
 
-  try {
+  const retryDocument = async (
+    id: number
+  ) => {
+    try {
+      await axios.post(
+        `${API_URL}/documents/${id}/retry`
+      );
 
-    await axios.post(
-      `http://127.0.0.1:8000/documents/${id}/retry`
-    );
+      alert("Retry started");
 
-    alert("Retry started");
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-    fetchDocuments();
-
-  } catch (error) {
-
-    console.log(error);
-
-  }
-};
-  // Status color
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (
+    status: string
+  ) => {
     if (status === "job_completed") {
       return "green";
     }
@@ -233,6 +219,10 @@ const retryDocument = async (
 
     if (status === "finalized") {
       return "blue";
+    }
+
+    if (status === "failed") {
+      return "red";
     }
 
     return "gray";
@@ -247,9 +237,11 @@ const retryDocument = async (
         minHeight: "100vh",
       }}
     >
-      <h1>🚀 Document Workflow System</h1>
+      <h1>
+        🚀 Async Document Workflow
+        System
+      </h1>
 
-      {/* Upload Section */}
       <div
         style={{
           background: "white",
@@ -283,7 +275,6 @@ const retryDocument = async (
         </button>
       </div>
 
-      {/* Search + Filter */}
       <div
         style={{
           background: "white",
@@ -332,6 +323,10 @@ const retryDocument = async (
             Completed
           </option>
 
+          <option value="failed">
+            Failed
+          </option>
+
           <option value="finalized">
             Finalized
           </option>
@@ -356,14 +351,13 @@ const retryDocument = async (
         </select>
       </div>
 
-      {/* Export Buttons */}
       <div
         style={{
           marginBottom: "20px",
         }}
       >
         <a
-          href="http://127.0.0.1:8000/export/json"
+          href={`${API_URL}/export/json`}
           target="_blank"
         >
           <button
@@ -382,7 +376,7 @@ const retryDocument = async (
         </a>
 
         <a
-          href="http://127.0.0.1:8000/export/csv"
+          href={`${API_URL}/export/csv`}
           target="_blank"
         >
           <button
@@ -400,9 +394,9 @@ const retryDocument = async (
         </a>
       </div>
 
-      {/* Documents */}
       <h2>
-        📂 Documents ({documents.length})
+        📂 Documents (
+        {documents.length})
       </h2>
 
       {loading ? (
@@ -458,47 +452,53 @@ const retryDocument = async (
                 ? "✅ Yes"
                 : "❌ No"}
             </p>
-{progressData[doc.id] && (
-  <div
-    style={{
-      marginTop: "10px",
-    }}
-  >
-    <p>
-      Progress:
-      {
-        progressData[doc.id]
-          .progress
-      }
-      %
-    </p>
 
-    <div
-      style={{
-        width: "100%",
-        background: "#ddd",
-        height: "10px",
-        borderRadius: "10px",
-      }}
-    >
-      <div
-        style={{
-          width: `${progressData[doc.id].progress}%`,
-          background: "green",
-          height: "10px",
-          borderRadius: "10px",
-        }}
-      />
-    </div>
+            {progressData[doc.id] && (
+              <div
+                style={{
+                  marginTop: "10px",
+                }}
+              >
+                <p>
+                  Progress:{" "}
+                  {
+                    progressData[
+                      doc.id
+                    ].progress
+                  }
+                  %
+                </p>
 
-    <p>
-      Event:
-      {
-        progressData[doc.id].event
-      }
-    </p>
-  </div>
-)}
+                <div
+                  style={{
+                    width: "100%",
+                    background: "#ddd",
+                    height: "10px",
+                    borderRadius: "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${progressData[doc.id].progress}%`,
+                      background: "green",
+                      height: "10px",
+                      borderRadius:
+                        "10px",
+                    }}
+                  />
+                </div>
+
+                <p>
+                  Event:{" "}
+                  {
+                    progressData[
+                      doc.id
+                    ].event
+                  }
+                </p>
+              </div>
+            )}
+
             <div
               style={{
                 marginTop: "10px",
@@ -534,154 +534,200 @@ const retryDocument = async (
                   border: "none",
                   borderRadius: "5px",
                   cursor: "pointer",
+                  marginRight: "10px",
                 }}
               >
                 Delete
               </button>
+
               {doc.status === "failed" && (
-  <button
-    onClick={() =>
-      retryDocument(doc.id)
-    }
-    style={{
-      padding: "8px 15px",
-      background: "orange",
-      color: "white",
-      border: "none",
-      borderRadius: "5px",
-      cursor: "pointer",
-      marginLeft: "10px",
-    }}
-  >
-    Retry
-  </button>
-)}
+                <button
+                  onClick={() =>
+                    retryDocument(
+                      doc.id
+                    )
+                  }
+                  style={{
+                    padding:
+                      "8px 15px",
+                    background:
+                      "orange",
+                    color: "white",
+                    border: "none",
+                    borderRadius:
+                      "5px",
+                    cursor: "pointer",
+                  }}
+                >
+                  Retry
+                </button>
+              )}
             </div>
+
+            {selectedDocument &&
+              selectedDocument.id ===
+                doc.id && (
+                <div
+                  style={{
+                    marginTop: "20px",
+                    background:
+                      "#f8f8f8",
+                    padding: "20px",
+                    borderRadius:
+                      "10px",
+                    border:
+                      "1px solid #ddd",
+                  }}
+                >
+                  <h2>
+                    📄 Document Detail
+                  </h2>
+
+                  <button
+                    onClick={() =>
+                      setSelectedDocument(
+                        null
+                      )
+                    }
+                    style={{
+                      padding:
+                        "8px 15px",
+                      background:
+                        "red",
+                      color: "white",
+                      border: "none",
+                      borderRadius:
+                        "5px",
+                      cursor:
+                        "pointer",
+                      marginBottom:
+                        "20px",
+                    }}
+                  >
+                    Close
+                  </button>
+
+                  <p>
+                    <b>ID:</b>{" "}
+                    {
+                      selectedDocument.id
+                    }
+                  </p>
+
+                  <p>
+                    <b>
+                      Filename:
+                    </b>{" "}
+                    {
+                      selectedDocument.filename
+                    }
+                  </p>
+
+                  <p>
+                    <b>Status:</b>{" "}
+                    {
+                      selectedDocument.status
+                    }
+                  </p>
+
+                  <p>
+                    <b>
+                      Finalized:
+                    </b>{" "}
+                    {selectedDocument.finalized
+                      ? "✅ Yes"
+                      : "❌ No"}
+                  </p>
+
+                  <div>
+                    <b>
+                      Extracted
+                      Data:
+                    </b>
+
+                    <textarea
+                      value={
+                        editedData
+                      }
+                      onChange={(
+                        e
+                      ) =>
+                        setEditedData(
+                          e.target
+                            .value
+                        )
+                      }
+                      rows={10}
+                      style={{
+                        width:
+                          "100%",
+                        marginTop:
+                          "10px",
+                        padding:
+                          "15px",
+                        borderRadius:
+                          "10px",
+                      }}
+                    />
+
+                    <div
+                      style={{
+                        marginTop:
+                          "15px",
+                      }}
+                    >
+                      <button
+                        onClick={
+                          updateDocument
+                        }
+                        style={{
+                          padding:
+                            "10px 15px",
+                          background:
+                            "green",
+                          color:
+                            "white",
+                          border:
+                            "none",
+                          borderRadius:
+                            "5px",
+                          cursor:
+                            "pointer",
+                          marginRight:
+                            "10px",
+                        }}
+                      >
+                        Save
+                        Changes
+                      </button>
+
+                      <button
+                        onClick={
+                          finalizeDocument
+                        }
+                        style={{
+                          padding:
+                            "10px 15px",
+                          background:
+                            "blue",
+                          color:
+                            "white",
+                          border:
+                            "none",
+                          borderRadius:
+                            "5px",
+                          cursor:
+                            "pointer",
+                        }}
+                      >
+                        Finalize
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
           </div>
         ))
-      )}
-
-      {/* Detail Panel */}
-      {selectedDocument && (
-        <div
-          style={{
-            background: "white",
-            padding: "20px",
-            borderRadius: "10px",
-            marginTop: "20px",
-          }}
-        >
-          <h2>
-            📄 Document Detail
-          </h2>
-
-          <button
-            onClick={() =>
-              setSelectedDocument(null)
-            }
-            style={{
-              padding: "8px 15px",
-              background: "red",
-              color: "white",
-              border: "none",
-              borderRadius: "5px",
-              cursor: "pointer",
-              marginBottom: "20px",
-            }}
-          >
-            Close
-          </button>
-
-          <p>
-            <b>ID:</b>{" "}
-            {selectedDocument.id}
-          </p>
-
-          <p>
-            <b>Filename:</b>{" "}
-            {
-              selectedDocument.filename
-            }
-          </p>
-
-          <p>
-            <b>Status:</b>{" "}
-            {selectedDocument.status}
-          </p>
-
-          <p>
-            <b>Finalized:</b>{" "}
-            {selectedDocument.finalized
-              ? "✅ Yes"
-              : "❌ No"}
-          </p>
-
-          <div>
-            <b>Extracted Data:</b>
-
-            <textarea
-              value={editedData}
-              onChange={(e) =>
-                setEditedData(
-                  e.target.value
-                )
-              }
-              rows={10}
-              style={{
-                width: "100%",
-                marginTop: "10px",
-                padding: "15px",
-                borderRadius: "10px",
-              }}
-            />
-
-            <div
-              style={{
-                marginTop: "15px",
-              }}
-            >
-              <button
-                onClick={
-                  updateDocument
-                }
-                style={{
-                  padding:
-                    "10px 15px",
-                  background:
-                    "green",
-                  color: "white",
-                  border: "none",
-                  borderRadius:
-                    "5px",
-                  cursor: "pointer",
-                  marginRight:
-                    "10px",
-                }}
-              >
-                Save Changes
-              </button>
-
-              <button
-                onClick={
-                  finalizeDocument
-                }
-                style={{
-                  padding:
-                    "10px 15px",
-                  background:
-                    "blue",
-                  color: "white",
-                  border: "none",
-                  borderRadius:
-                    "5px",
-                  cursor: "pointer",
-                }}
-              >
-                Finalize
-              </button>
-            </div>
-          </div>
-        </div>
       )}
     </div>
   );
