@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-// Backend URL
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000"
@@ -18,88 +17,44 @@ function App() {
   const [selectedDocument, setSelectedDocument] =
     useState<any>(null);
 
-  const [editedData, setEditedData] =
-    useState("");
+  const [editedData, setEditedData] = useState("");
 
-  const [loading, setLoading] =
-    useState(false);
+  const [loading, setLoading] = useState(false);
 
-  // FIXED TYPE
   const [progressData, setProgressData] =
-    useState<Record<number, any>>({});
-
-  // Axios instance
-  const api = axios.create({
-    baseURL: API_BASE_URL,
-  });
+    useState<any>({});
 
   // Fetch documents
   const fetchDocuments = async () => {
     try {
       setLoading(true);
 
-      const response = await api.get(
-        "/documents",
-        {
-          params: {
-            search,
-            status,
-            sort_by: sortBy,
-          },
-        }
+      const response = await axios.get(
+        `${API_BASE_URL}/documents?search=${search}&status=${status}&sort_by=${sortBy}`
       );
 
-      // Handle different response formats
-      if (Array.isArray(response.data)) {
-        setDocuments(response.data);
-      } else if (
-        Array.isArray(
-          response.data.documents
-        )
-      ) {
-        setDocuments(
-          response.data.documents
-        );
-      } else {
-        setDocuments([]);
-      }
+      setDocuments(response.data);
     } catch (error) {
       console.log(error);
-
-      setDocuments([]);
     } finally {
       setLoading(false);
     }
   };
-
-  // Auto refresh
-  useEffect(() => {
-    fetchDocuments();
-
-    const interval = setInterval(() => {
-      fetchDocuments();
-    }, 3000);
-
-    return () =>
-      clearInterval(interval);
-  }, [search, status, sortBy]);
-
   // Progress polling
   useEffect(() => {
     const interval = setInterval(
       async () => {
         try {
           const response =
-            await api.get(
-              "/progress"
+            await axios.get(
+              `${API_BASE_URL}/progress`
             );
 
           if (
-            response.data
-              ?.document_id
+            response.data.document_id
           ) {
             setProgressData(
-              (prev) => ({
+              (prev: any) => ({
                 ...prev,
 
                 [response.data.document_id]:
@@ -120,65 +75,41 @@ function App() {
 
   // Upload file
   const handleUpload = async () => {
-    if (!file) {
-      alert("Please select a file");
-      return;
-    }
+    if (!file) return;
 
     const formData = new FormData();
 
     formData.append("file", file);
 
     try {
-      await api.post(
-        "/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
+      await axios.post(
+        `${API_BASE_URL}/upload`,
+        formData
       );
 
-      alert(
-        "File uploaded successfully"
-      );
+      alert("File uploaded successfully");
 
       setFile(null);
 
-      // Delay for DB update
-      setTimeout(() => {
-        fetchDocuments();
-      }, 2000);
-    } catch (error: any) {
+      fetchDocuments();
+    } catch (error) {
       console.log(error);
-
-      alert(
-        error?.response?.data
-          ?.detail ||
-          "Upload failed"
-      );
     }
   };
 
-  // View detail
+  // View document detail
   const viewDocumentDetail = async (
     id: number
   ) => {
     try {
-      const response =
-        await api.get(
-          `/documents/${id}`
-        );
-
-      setSelectedDocument(
-        response.data
+      const response = await axios.get(
+        `${API_BASE_URL}/documents/${id}`
       );
 
+      setSelectedDocument(response.data);
+
       setEditedData(
-        response.data
-          ?.extracted_data || ""
+        response.data.extracted_data || ""
       );
     } catch (error) {
       console.log(error);
@@ -188,137 +119,115 @@ function App() {
   };
 
   // Update document
-  const updateDocument =
-    async () => {
-      if (!selectedDocument)
-        return;
+  const updateDocument = async () => {
+    if (!selectedDocument) return;
 
-      try {
-        await api.put(
-          `/documents/${selectedDocument.id}`,
-          {
-            extracted_data:
-              editedData,
-          }
-        );
+    try {
+      await axios.put(
+        `${API_BASE_URL}/documents/${selectedDocument.id}`,
+        {
+          extracted_data: editedData,
+        }
+      );
 
-        alert(
-          "Document updated successfully"
-        );
+      alert("Document updated successfully");
 
-        await viewDocumentDetail(
-          selectedDocument.id
-        );
+      await viewDocumentDetail(
+        selectedDocument.id
+      );
 
-        fetchDocuments();
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Finalize document
-  const finalizeDocument =
-    async () => {
-      if (!selectedDocument)
-        return;
+  const finalizeDocument = async () => {
+    if (!selectedDocument) return;
 
-      try {
-        await api.put(
-          `/documents/${selectedDocument.id}/finalize`
-        );
+    try {
+      await axios.put(
+        `${API_BASE_URL}/documents/${selectedDocument.id}/finalize`
+      );
 
-        alert(
-          "Document finalized"
-        );
+      alert("Document finalized");
 
-        await viewDocumentDetail(
-          selectedDocument.id
-        );
+      await viewDocumentDetail(
+        selectedDocument.id
+      );
 
-        fetchDocuments();
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Delete document
-  const deleteDocument =
-    async (id: number) => {
-      const confirmDelete =
-        window.confirm(
-          "Are you sure you want to delete this document?"
-        );
+  const deleteDocument = async (
+    id: number
+  ) => {
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this document?"
+      );
 
-      if (!confirmDelete)
-        return;
+    if (!confirmDelete) return;
 
-      try {
-        await api.delete(
-          `/documents/${id}`
-        );
+    try {
+      await axios.delete(
+        `${API_BASE_URL}/documents/${id}`
+      );
 
-        alert(
-          "Document deleted"
-        );
+      alert("Document deleted");
 
-        if (
-          selectedDocument &&
-          selectedDocument.id ===
-            id
-        ) {
-          setSelectedDocument(
-            null
-          );
-        }
-
-        fetchDocuments();
-      } catch (error) {
-        console.log(error);
+      if (
+        selectedDocument &&
+        selectedDocument.id === id
+      ) {
+        setSelectedDocument(null);
       }
-    };
+
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Retry document
-  const retryDocument =
-    async (id: number) => {
-      try {
-        await api.post(
-          `/documents/${id}/retry`
-        );
+  const retryDocument = async (
+    id: number
+  ) => {
+    try {
+      await axios.post(
+        `${API_BASE_URL}/documents/${id}/retry`
+      );
 
-        alert("Retry started");
+      alert("Retry started");
 
-        fetchDocuments();
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      fetchDocuments();
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   // Status color
   const getStatusColor = (
     status: string
   ) => {
-    if (
-      status ===
-      "job_completed"
-    ) {
+    if (status === "job_completed") {
       return "green";
     }
 
-    if (
-      status === "processing"
-    ) {
+    if (status === "processing") {
       return "orange";
     }
 
-    if (
-      status === "finalized"
-    ) {
+    if (status === "finalized") {
       return "blue";
     }
 
-    if (
-      status === "failed"
-    ) {
+    if (status === "failed") {
       return "red";
     }
 
@@ -335,11 +244,10 @@ function App() {
       }}
     >
       <h1>
-        🚀 Document Workflow
-        System
+        🚀 Document Workflow System
       </h1>
 
-      {/* Upload */}
+      {/* Upload Section */}
       <div
         style={{
           background: "white",
@@ -351,31 +259,23 @@ function App() {
         <input
           type="file"
           onChange={(e) => {
-            if (
-              e.target.files
-            ) {
+            if (e.target.files) {
               setFile(
-                e.target
-                  .files[0]
+                e.target.files[0]
               );
             }
           }}
         />
 
         <button
-          onClick={
-            handleUpload
-          }
+          onClick={handleUpload}
           style={{
             marginLeft: "10px",
-            padding:
-              "10px 18px",
-            background:
-              "#007bff",
+            padding: "10px 18px",
+            background: "#007bff",
             color: "white",
             border: "none",
-            borderRadius:
-              "5px",
+            borderRadius: "5px",
             cursor: "pointer",
           }}
         >
@@ -383,7 +283,7 @@ function App() {
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search + Filter */}
       <div
         style={{
           background: "white",
@@ -404,8 +304,7 @@ function App() {
           style={{
             padding: "10px",
             width: "250px",
-            marginRight:
-              "10px",
+            marginRight: "10px",
           }}
         />
 
@@ -418,8 +317,7 @@ function App() {
           }
           style={{
             padding: "10px",
-            marginRight:
-              "10px",
+            marginRight: "10px",
           }}
         >
           <option value="">
@@ -468,7 +366,7 @@ function App() {
         </select>
       </div>
 
-      {/* Export */}
+      {/* Export Buttons */}
       <div
         style={{
           marginBottom: "20px",
@@ -477,20 +375,16 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/json`}
           target="_blank"
-          rel="noreferrer"
         >
           <button
             style={{
-              padding:
-                "10px 15px",
-              marginRight:
-                "10px",
-              background:
-                "purple",
+              padding: "10px 15px",
+              marginRight: "10px",
+              background: "purple",
               color: "white",
               border: "none",
-              borderRadius:
-                "5px",
+              borderRadius: "5px",
+              cursor: "pointer",
             }}
           >
             Export JSON
@@ -500,18 +394,15 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/csv`}
           target="_blank"
-          rel="noreferrer"
         >
           <button
             style={{
-              padding:
-                "10px 15px",
-              background:
-                "darkred",
+              padding: "10px 15px",
+              background: "darkred",
               color: "white",
               border: "none",
-              borderRadius:
-                "5px",
+              borderRadius: "5px",
+              cursor: "pointer",
             }}
           >
             Export CSV
@@ -526,26 +417,18 @@ function App() {
       </h2>
 
       {loading ? (
-        <p>
-          Loading documents...
-        </p>
-      ) : documents.length ===
-        0 ? (
-        <p>
-          No documents found
-        </p>
+        <p>Loading documents...</p>
+      ) : documents.length === 0 ? (
+        <p>No documents found</p>
       ) : (
         documents.map((doc) => (
           <div
             key={doc.id}
             style={{
-              background:
-                "white",
+              background: "white",
               padding: "20px",
-              marginBottom:
-                "15px",
-              borderRadius:
-                "10px",
+              marginBottom: "15px",
+              borderRadius: "10px",
               boxShadow:
                 "0 2px 5px rgba(0,0,0,0.1)",
             }}
@@ -555,8 +438,7 @@ function App() {
             </h3>
 
             <p>
-              <b>ID:</b>{" "}
-              {doc.id}
+              <b>ID:</b> {doc.id}
             </p>
 
             <p>
@@ -569,14 +451,12 @@ function App() {
 
               <span
                 style={{
-                  marginLeft:
-                    "10px",
+                  marginLeft: "10px",
                   background:
                     getStatusColor(
                       doc.status
                     ),
-                  color:
-                    "white",
+                  color: "white",
                   padding:
                     "5px 10px",
                   borderRadius:
@@ -588,26 +468,20 @@ function App() {
             </p>
 
             <p>
-              <b>
-                Finalized:
-              </b>{" "}
+              <b>Finalized:</b>{" "}
               {doc.finalized
                 ? "✅ Yes"
                 : "❌ No"}
             </p>
 
-            {/* Progress UI FIXED */}
-            {progressData[
-              doc.id
-            ] && (
+            {progressData[doc.id] && (
               <div
                 style={{
-                  marginTop:
-                    "10px",
+                  marginTop: "10px",
                 }}
               >
                 <p>
-                  Progress:{" "}
+                  Progress:
                   {
                     progressData[
                       doc.id
@@ -640,7 +514,7 @@ function App() {
                 </div>
 
                 <p>
-                  Event:{" "}
+                  Event:
                   {
                     progressData[
                       doc.id
@@ -652,8 +526,7 @@ function App() {
 
             <div
               style={{
-                marginTop:
-                  "10px",
+                marginTop: "10px",
               }}
             >
               <button
@@ -667,12 +540,11 @@ function App() {
                     "8px 15px",
                   background:
                     "black",
-                  color:
-                    "white",
-                  border:
-                    "none",
+                  color: "white",
+                  border: "none",
                   borderRadius:
                     "5px",
+                  cursor: "pointer",
                   marginRight:
                     "10px",
                 }}
@@ -691,12 +563,11 @@ function App() {
                     "8px 15px",
                   background:
                     "red",
-                  color:
-                    "white",
-                  border:
-                    "none",
+                  color: "white",
+                  border: "none",
                   borderRadius:
                     "5px",
+                  cursor: "pointer",
                 }}
               >
                 Delete
@@ -715,12 +586,12 @@ function App() {
                       "8px 15px",
                     background:
                       "orange",
-                    color:
-                      "white",
-                    border:
-                      "none",
+                    color: "white",
+                    border: "none",
                     borderRadius:
                       "5px",
+                    cursor:
+                      "pointer",
                     marginLeft:
                       "10px",
                   }}
@@ -733,7 +604,7 @@ function App() {
         ))
       )}
 
-      {/* Detail */}
+      {/* Detail Panel */}
       {selectedDocument && (
         <div
           style={{
@@ -747,67 +618,118 @@ function App() {
             📄 Document Detail
           </h2>
 
-          <textarea
-            value={editedData}
-            onChange={(e) =>
-              setEditedData(
-                e.target.value
+          <button
+            onClick={() =>
+              setSelectedDocument(
+                null
               )
             }
-            rows={10}
             style={{
-              width: "100%",
-              marginTop: "10px",
-              padding: "15px",
-              borderRadius:
-                "10px",
-            }}
-          />
-
-          <div
-            style={{
-              marginTop: "15px",
+              padding: "8px 15px",
+              background: "red",
+              color: "white",
+              border: "none",
+              borderRadius: "5px",
+              cursor: "pointer",
+              marginBottom: "20px",
             }}
           >
-            <button
-              onClick={
-                updateDocument
+            Close
+          </button>
+
+          <p>
+            <b>ID:</b>{" "}
+            {selectedDocument.id}
+          </p>
+
+          <p>
+            <b>Filename:</b>{" "}
+            {
+              selectedDocument.filename
+            }
+          </p>
+
+          <p>
+            <b>Status:</b>{" "}
+            {
+              selectedDocument.status
+            }
+          </p>
+
+          <p>
+            <b>Finalized:</b>{" "}
+            {selectedDocument.finalized
+              ? "✅ Yes"
+              : "❌ No"}
+          </p>
+
+          <div>
+            <b>
+              Extracted Data:
+            </b>
+
+            <textarea
+              value={editedData}
+              onChange={(e) =>
+                setEditedData(
+                  e.target.value
+                )
               }
+              rows={10}
               style={{
-                padding:
-                  "10px 15px",
-                background:
-                  "green",
-                color:
-                  "white",
-                border: "none",
+                width: "100%",
+                marginTop: "10px",
+                padding: "15px",
                 borderRadius:
-                  "5px",
-                marginRight:
                   "10px",
               }}
-            >
-              Save Changes
-            </button>
+            />
 
-            <button
-              onClick={
-                finalizeDocument
-              }
+            <div
               style={{
-                padding:
-                  "10px 15px",
-                background:
-                  "blue",
-                color:
-                  "white",
-                border: "none",
-                borderRadius:
-                  "5px",
+                marginTop: "15px",
               }}
             >
-              Finalize
-            </button>
+              <button
+                onClick={
+                  updateDocument
+                }
+                style={{
+                  padding:
+                    "10px 15px",
+                  background:
+                    "green",
+                  color: "white",
+                  border: "none",
+                  borderRadius:
+                    "5px",
+                  cursor: "pointer",
+                  marginRight:
+                    "10px",
+                }}
+              >
+                Save Changes
+              </button>
+
+              <button
+                onClick={
+                  finalizeDocument
+                }
+                style={{
+                  padding:
+                    "10px 15px",
+                  background:
+                    "blue",
+                  color: "white",
+                  border: "none",
+                  borderRadius:
+                    "5px",
+                  cursor: "pointer",
+                }}
+              >
+                Finalize
+              </button>
+            </div>
           </div>
         </div>
       )}
