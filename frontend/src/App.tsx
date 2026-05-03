@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-// Auto backend URL detect
+// Backend URL
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000"
@@ -31,7 +31,14 @@ function App() {
       setLoading(true);
 
       const response = await axios.get(
-        `${API_BASE_URL}/documents?search=${search}&status=${status}&sort_by=${sortBy}`
+        `${API_BASE_URL}/documents`,
+        {
+          params: {
+            search,
+            status,
+            sort_by: sortBy,
+          },
+        }
       );
 
       setDocuments(response.data);
@@ -42,7 +49,7 @@ function App() {
     }
   };
 
-  // Auto refresh every 3 sec
+  // Auto refresh
   useEffect(() => {
     fetchDocuments();
 
@@ -88,7 +95,10 @@ function App() {
 
   // Upload file
   const handleUpload = async () => {
-    if (!file) return;
+    if (!file) {
+      alert("Please select a file");
+      return;
+    }
 
     const formData = new FormData();
 
@@ -97,20 +107,33 @@ function App() {
     try {
       await axios.post(
         `${API_BASE_URL}/upload`,
-        formData
+        formData,
+        {
+          headers: {
+            "Content-Type":
+              "multipart/form-data",
+          },
+        }
       );
 
-      alert("File uploaded successfully");
+      alert(
+        "File uploaded successfully"
+      );
 
       setFile(null);
 
       fetchDocuments();
-    } catch (error) {
+    } catch (error: any) {
       console.log(error);
+
+      alert(
+        error?.response?.data?.detail ||
+          "Upload failed"
+      );
     }
   };
 
-  // View document detail
+  // View detail
   const viewDocumentDetail = async (
     id: number
   ) => {
@@ -143,7 +166,9 @@ function App() {
         }
       );
 
-      alert("Document updated successfully");
+      alert(
+        "Document updated successfully"
+      );
 
       await viewDocumentDetail(
         selectedDocument.id
