@@ -8,31 +8,19 @@ import json
 import redis
 import os
 
-# =========================
-# ENV (LOCAL + RENDER SAFE)
-# =========================
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
-# =========================
-# CELERY SETUP
-# =========================
 celery = Celery(
     "tasks",
     broker=REDIS_URL,
     backend=REDIS_URL
 )
 
-# =========================
-# REDIS CLIENT
-# =========================
 redis_client = redis.Redis.from_url(
     REDIS_URL,
     decode_responses=True
 )
 
-# =========================
-# PROGRESS FUNCTION
-# =========================
 def publish_progress(document_id, event, progress):
     redis_client.publish(
         "document_progress",
@@ -43,9 +31,6 @@ def publish_progress(document_id, event, progress):
         })
     )
 
-# =========================
-# MAIN TASK
-# =========================
 @celery.task
 def process_document(document_id):
 
