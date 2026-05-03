@@ -1,64 +1,87 @@
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-// Backend URL
 const API_BASE_URL =
-  window.location.hostname === "localhost"
+  window.location.hostname ===
+  "localhost"
     ? "http://127.0.0.1:8000"
-    : "https://YOUR-BACKEND-URL.onrender.com";
+    : "https://async-document-processing-system-e0oc.onrender.com";
 
 function App() {
-  const [documents, setDocuments] = useState<any[]>([]);
-  const [file, setFile] = useState<File | null>(null);
+  const [documents, setDocuments] =
+    useState<any[]>([]);
 
-  const [search, setSearch] = useState("");
-  const [status, setStatus] = useState("");
-  const [sortBy, setSortBy] = useState("id");
+  const [file, setFile] =
+    useState<File | null>(null);
 
-  const [selectedDocument, setSelectedDocument] =
+  const [search, setSearch] =
+    useState("");
+
+  const [status, setStatus] =
+    useState("");
+
+  const [sortBy, setSortBy] =
+    useState("id");
+
+  const [selectedDocument,
+    setSelectedDocument] =
     useState<any>(null);
 
-  const [editedData, setEditedData] =
+  const [editedData,
+    setEditedData] =
     useState("");
 
   const [loading, setLoading] =
     useState(false);
 
-  // FIXED TYPE
-  const [progressData, setProgressData] =
-    useState<Record<number, any>>({});
+  const [progressData,
+    setProgressData] =
+    useState<Record<number, any>>(
+      {}
+    );
 
-  // Axios instance
+  // ================================
+  // Axios Instance
+  // ================================
+
   const api = axios.create({
     baseURL: API_BASE_URL,
   });
 
-  // Fetch documents
+  // ================================
+  // Fetch Documents
+  // ================================
+
   const fetchDocuments = async () => {
     try {
       setLoading(true);
 
-      const response = await api.get(
-        "/documents",
-        {
-          params: {
-            search,
-            status,
-            sort_by: sortBy,
-          },
-        }
-      );
+      const response =
+        await api.get(
+          "/documents",
+          {
+            params: {
+              search,
+              status,
+              sort_by: sortBy,
+            },
+          }
+        );
 
-      // Handle different response formats
-      if (Array.isArray(response.data)) {
-        setDocuments(response.data);
-      } else if (
-        Array.isArray(
-          response.data.documents
-        )
+      // Handle multiple response formats
+
+      if (
+        Array.isArray(response.data)
       ) {
         setDocuments(
-          response.data.documents
+          response.data
+        );
+      } else if (
+        response.data.documents
+      ) {
+        setDocuments(
+          response.data
+            .documents
         );
       } else {
         setDocuments([]);
@@ -72,122 +95,152 @@ function App() {
     }
   };
 
-  // Auto refresh
+  // ================================
+  // Auto Refresh
+  // ================================
+
   useEffect(() => {
     fetchDocuments();
 
-    const interval = setInterval(() => {
-      fetchDocuments();
-    }, 3000);
+    const interval =
+      setInterval(() => {
+        fetchDocuments();
+      }, 3000);
 
     return () =>
       clearInterval(interval);
   }, [search, status, sortBy]);
 
-  // Progress polling
+  // ================================
+  // Progress Polling
+  // ================================
+
   useEffect(() => {
-    const interval = setInterval(
-      async () => {
-        try {
-          const response =
-            await api.get(
-              "/progress"
-            );
+    const interval =
+      setInterval(
+        async () => {
+          try {
+            const response =
+              await api.get(
+                "/progress"
+              );
 
-          if (
-            response.data
-              ?.document_id
-          ) {
-            setProgressData(
-              (prev) => ({
-                ...prev,
+            if (
+              response.data
+                .document_id
+            ) {
+              setProgressData(
+                (
+                  prev
+                ) => ({
+                  ...prev,
 
-                [response.data.document_id]:
-                  response.data,
-              })
-            );
+                  [response.data
+                    .document_id]:
+                    response.data,
+                })
+              );
+            }
+          } catch (error) {
+            console.log(error);
           }
-        } catch (error) {
-          console.log(error);
-        }
-      },
-      2000
-    );
+        },
+        2000
+      );
 
     return () =>
       clearInterval(interval);
   }, []);
 
-  // Upload file
-  const handleUpload = async () => {
-    if (!file) {
-      alert("Please select a file");
-      return;
-    }
+  // ================================
+  // Upload File
+  // ================================
 
-    const formData = new FormData();
-
-    formData.append("file", file);
-
-    try {
-      await api.post(
-        "/upload",
-        formData,
-        {
-          headers: {
-            "Content-Type":
-              "multipart/form-data",
-          },
-        }
-      );
-
-      alert(
-        "File uploaded successfully"
-      );
-
-      setFile(null);
-
-      // Delay for DB update
-      setTimeout(() => {
-        fetchDocuments();
-      }, 2000);
-    } catch (error: any) {
-      console.log(error);
-
-      alert(
-        error?.response?.data
-          ?.detail ||
-          "Upload failed"
-      );
-    }
-  };
-
-  // View detail
-  const viewDocumentDetail = async (
-    id: number
-  ) => {
-    try {
-      const response =
-        await api.get(
-          `/documents/${id}`
+  const handleUpload =
+    async () => {
+      if (!file) {
+        alert(
+          "Please select a file"
         );
 
-      setSelectedDocument(
-        response.data
+        return;
+      }
+
+      const formData =
+        new FormData();
+
+      formData.append(
+        "file",
+        file
       );
 
-      setEditedData(
-        response.data
-          ?.extracted_data || ""
-      );
-    } catch (error) {
-      console.log(error);
+      try {
+        await api.post(
+          "/upload",
+          formData,
+          {
+            headers: {
+              "Content-Type":
+                "multipart/form-data",
+            },
+          }
+        );
 
-      alert("Detail fetch failed");
-    }
-  };
+        alert(
+          "File uploaded successfully"
+        );
 
-  // Update document
+        setFile(null);
+
+        // Delay for Render DB update
+
+        setTimeout(() => {
+          fetchDocuments();
+        }, 2000);
+      } catch (error: any) {
+        console.log(error);
+
+        alert(
+          error?.response
+            ?.data?.detail ||
+            "Upload failed"
+        );
+      }
+    };
+
+  // ================================
+  // View Detail
+  // ================================
+
+  const viewDocumentDetail =
+    async (id: number) => {
+      try {
+        const response =
+          await api.get(
+            `/documents/${id}`
+          );
+
+        setSelectedDocument(
+          response.data
+        );
+
+        setEditedData(
+          response.data
+            .extracted_data || ""
+        );
+      } catch (error) {
+        console.log(error);
+
+        alert(
+          "Detail fetch failed"
+        );
+      }
+    };
+
+  // ================================
+  // Update Document
+  // ================================
+
   const updateDocument =
     async () => {
       if (!selectedDocument)
@@ -216,7 +269,10 @@ function App() {
       }
     };
 
-  // Finalize document
+  // ================================
+  // Finalize Document
+  // ================================
+
   const finalizeDocument =
     async () => {
       if (!selectedDocument)
@@ -241,7 +297,10 @@ function App() {
       }
     };
 
-  // Delete document
+  // ================================
+  // Delete Document
+  // ================================
+
   const deleteDocument =
     async (id: number) => {
       const confirmDelete =
@@ -277,7 +336,10 @@ function App() {
       }
     };
 
-  // Retry document
+  // ================================
+  // Retry Document
+  // ================================
+
   const retryDocument =
     async (id: number) => {
       try {
@@ -285,7 +347,9 @@ function App() {
           `/documents/${id}/retry`
         );
 
-        alert("Retry started");
+        alert(
+          "Retry started"
+        );
 
         fetchDocuments();
       } catch (error) {
@@ -293,7 +357,10 @@ function App() {
       }
     };
 
-  // Status color
+  // ================================
+  // Status Color
+  // ================================
+
   const getStatusColor = (
     status: string
   ) => {
@@ -339,7 +406,8 @@ function App() {
         System
       </h1>
 
-      {/* Upload */}
+      {/* Upload Section */}
+
       <div
         style={{
           background: "white",
@@ -367,7 +435,8 @@ function App() {
             handleUpload
           }
           style={{
-            marginLeft: "10px",
+            marginLeft:
+              "10px",
             padding:
               "10px 18px",
             background:
@@ -383,7 +452,8 @@ function App() {
         </button>
       </div>
 
-      {/* Search */}
+      {/* Search Filter */}
+
       <div
         style={{
           background: "white",
@@ -469,6 +539,7 @@ function App() {
       </div>
 
       {/* Export */}
+
       <div
         style={{
           marginBottom: "20px",
@@ -477,7 +548,6 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/json`}
           target="_blank"
-          rel="noreferrer"
         >
           <button
             style={{
@@ -500,7 +570,6 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/csv`}
           target="_blank"
-          rel="noreferrer"
         >
           <button
             style={{
@@ -520,6 +589,7 @@ function App() {
       </div>
 
       {/* Documents */}
+
       <h2>
         📂 Documents (
         {documents.length})
@@ -596,7 +666,8 @@ function App() {
                 : "❌ No"}
             </p>
 
-            {/* Progress UI FIXED */}
+            {/* Progress */}
+
             {progressData[
               doc.id
             ] && (
@@ -611,17 +682,20 @@ function App() {
                   {
                     progressData[
                       doc.id
-                    ].progress
+                    ]
+                      .progress
                   }
                   %
                 </p>
 
                 <div
                   style={{
-                    width: "100%",
+                    width:
+                      "100%",
                     background:
                       "#ddd",
-                    height: "10px",
+                    height:
+                      "10px",
                     borderRadius:
                       "10px",
                   }}
@@ -650,6 +724,8 @@ function App() {
               </div>
             )}
 
+            {/* Buttons */}
+
             <div
               style={{
                 marginTop:
@@ -673,6 +749,8 @@ function App() {
                     "none",
                   borderRadius:
                     "5px",
+                  cursor:
+                    "pointer",
                   marginRight:
                     "10px",
                 }}
@@ -697,6 +775,8 @@ function App() {
                     "none",
                   borderRadius:
                     "5px",
+                  cursor:
+                    "pointer",
                 }}
               >
                 Delete
@@ -721,6 +801,8 @@ function App() {
                       "none",
                     borderRadius:
                       "5px",
+                    cursor:
+                      "pointer",
                     marginLeft:
                       "10px",
                   }}
@@ -733,7 +815,8 @@ function App() {
         ))
       )}
 
-      {/* Detail */}
+      {/* Detail Panel */}
+
       {selectedDocument && (
         <div
           style={{
@@ -747,67 +830,139 @@ function App() {
             📄 Document Detail
           </h2>
 
-          <textarea
-            value={editedData}
-            onChange={(e) =>
-              setEditedData(
-                e.target.value
+          <button
+            onClick={() =>
+              setSelectedDocument(
+                null
               )
             }
-            rows={10}
             style={{
-              width: "100%",
-              marginTop: "10px",
-              padding: "15px",
+              padding:
+                "8px 15px",
+              background:
+                "red",
+              color: "white",
+              border: "none",
               borderRadius:
-                "10px",
-            }}
-          />
-
-          <div
-            style={{
-              marginTop: "15px",
+                "5px",
+              cursor:
+                "pointer",
+              marginBottom:
+                "20px",
             }}
           >
-            <button
-              onClick={
-                updateDocument
+            Close
+          </button>
+
+          <p>
+            <b>ID:</b>{" "}
+            {
+              selectedDocument.id
+            }
+          </p>
+
+          <p>
+            <b>Filename:</b>{" "}
+            {
+              selectedDocument.filename
+            }
+          </p>
+
+          <p>
+            <b>Status:</b>{" "}
+            {
+              selectedDocument.status
+            }
+          </p>
+
+          <p>
+            <b>
+              Finalized:
+            </b>{" "}
+            {selectedDocument.finalized
+              ? "✅ Yes"
+              : "❌ No"}
+          </p>
+
+          <div>
+            <b>
+              Extracted Data:
+            </b>
+
+            <textarea
+              value={
+                editedData
               }
+              onChange={(e) =>
+                setEditedData(
+                  e.target
+                    .value
+                )
+              }
+              rows={10}
               style={{
+                width: "100%",
+                marginTop:
+                  "10px",
                 padding:
-                  "10px 15px",
-                background:
-                  "green",
-                color:
-                  "white",
-                border: "none",
+                  "15px",
                 borderRadius:
-                  "5px",
-                marginRight:
                   "10px",
               }}
-            >
-              Save Changes
-            </button>
+            />
 
-            <button
-              onClick={
-                finalizeDocument
-              }
+            <div
               style={{
-                padding:
-                  "10px 15px",
-                background:
-                  "blue",
-                color:
-                  "white",
-                border: "none",
-                borderRadius:
-                  "5px",
+                marginTop:
+                  "15px",
               }}
             >
-              Finalize
-            </button>
+              <button
+                onClick={
+                  updateDocument
+                }
+                style={{
+                  padding:
+                    "10px 15px",
+                  background:
+                    "green",
+                  color:
+                    "white",
+                  border:
+                    "none",
+                  borderRadius:
+                    "5px",
+                  cursor:
+                    "pointer",
+                  marginRight:
+                    "10px",
+                }}
+              >
+                Save Changes
+              </button>
+
+              <button
+                onClick={
+                  finalizeDocument
+                }
+                style={{
+                  padding:
+                    "10px 15px",
+                  background:
+                    "blue",
+                  color:
+                    "white",
+                  border:
+                    "none",
+                  borderRadius:
+                    "5px",
+                  cursor:
+                    "pointer",
+                }}
+              >
+                Finalize
+              </button>
+            </div>
           </div>
         </div>
       )}
