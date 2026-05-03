@@ -8,11 +8,11 @@ Backend (Render API):
 https://async-document-processing-system-e0oc.onrender.com
 
 GitHub (GitHub Link):
-https://async-document-processing-system-e0oc.onrender.com
+https://github.com/Soyalkhan01/async-document-processing-system
 
 ## 🎥 Demo Video
 
-https://your-demo-video-link.com
+https://drive.google.com/file/d/1nqROszATO0sPxP9XcC9TeQIsbhx3CjeN/view?usp=drivesdk
 
 ## ⚙️ Tech Stack
 
