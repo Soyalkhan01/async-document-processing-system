@@ -5,7 +5,7 @@ import axios from "axios";
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000"
-    : "https://async-document-frontend.onrender.com/";
+    : "https://YOUR-BACKEND-URL.onrender.com";
 
 function App() {
   const [documents, setDocuments] = useState<any[]>([]);
@@ -18,12 +18,15 @@ function App() {
   const [selectedDocument, setSelectedDocument] =
     useState<any>(null);
 
-  const [editedData, setEditedData] = useState("");
+  const [editedData, setEditedData] =
+    useState("");
 
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] =
+    useState(false);
 
+  // FIXED TYPE
   const [progressData, setProgressData] =
-    useState<any>({});
+    useState<Record<number, any>>({});
 
   // Axios instance
   const api = axios.create({
@@ -46,14 +49,13 @@ function App() {
         }
       );
 
-      // IMPORTANT FIX
-      // Render backend may return:
-      // { documents: [...] }
-
+      // Handle different response formats
       if (Array.isArray(response.data)) {
         setDocuments(response.data);
       } else if (
-        response.data.documents
+        Array.isArray(
+          response.data.documents
+        )
       ) {
         setDocuments(
           response.data.documents
@@ -63,6 +65,7 @@ function App() {
       }
     } catch (error) {
       console.log(error);
+
       setDocuments([]);
     } finally {
       setLoading(false);
@@ -92,10 +95,11 @@ function App() {
             );
 
           if (
-            response.data.document_id
+            response.data
+              ?.document_id
           ) {
             setProgressData(
-              (prev: any) => ({
+              (prev) => ({
                 ...prev,
 
                 [response.data.document_id]:
@@ -143,7 +147,6 @@ function App() {
 
       setFile(null);
 
-      // IMPORTANT
       // Delay for DB update
       setTimeout(() => {
         fetchDocuments();
@@ -175,7 +178,7 @@ function App() {
 
       setEditedData(
         response.data
-          .extracted_data || ""
+          ?.extracted_data || ""
       );
     } catch (error) {
       console.log(error);
@@ -474,6 +477,7 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/json`}
           target="_blank"
+          rel="noreferrer"
         >
           <button
             style={{
@@ -496,6 +500,7 @@ function App() {
         <a
           href={`${API_BASE_URL}/export/csv`}
           target="_blank"
+          rel="noreferrer"
         >
           <button
             style={{
@@ -590,6 +595,60 @@ function App() {
                 ? "✅ Yes"
                 : "❌ No"}
             </p>
+
+            {/* Progress UI FIXED */}
+            {progressData[
+              doc.id
+            ] && (
+              <div
+                style={{
+                  marginTop:
+                    "10px",
+                }}
+              >
+                <p>
+                  Progress:{" "}
+                  {
+                    progressData[
+                      doc.id
+                    ].progress
+                  }
+                  %
+                </p>
+
+                <div
+                  style={{
+                    width: "100%",
+                    background:
+                      "#ddd",
+                    height: "10px",
+                    borderRadius:
+                      "10px",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: `${progressData[doc.id].progress}%`,
+                      background:
+                        "green",
+                      height:
+                        "10px",
+                      borderRadius:
+                        "10px",
+                    }}
+                  />
+                </div>
+
+                <p>
+                  Event:{" "}
+                  {
+                    progressData[
+                      doc.id
+                    ].event
+                  }
+                </p>
+              </div>
+            )}
 
             <div
               style={{
