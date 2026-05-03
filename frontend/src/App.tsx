@@ -4,7 +4,7 @@ import axios from "axios";
 const API_BASE_URL =
   window.location.hostname === "localhost"
     ? "http://127.0.0.1:8000"
-    : "https://async-document-processing-system-e0oc.onrender.com";
+    : "https://async-document-processing-system-e0oc.onrender.com ";
 
 function App() {
   const [documents, setDocuments] = useState<any[]>([]);
