@@ -7,12 +7,9 @@ https://async-document-frontend.onrender.com/
 Backend (Render API):
 https://async-document-processing-system-e0oc.onrender.com
 
-GitHub (GitHub Link):
-https://github.com/Soyalkhan01/async-document-processing-system
-
 ## 🎥 Demo Video
 
-https://drive.google.com/file/d/1nqROszATO0sPxP9XcC9TeQIsbhx3CjeN/view?usp=drivesdk
+https://drive.google.com/file/d/1eF51d1VBGf17Rp7kJC1b0xSO0RfZAx7j/view?usp=drivesdk
 
 ## ⚙️ Tech Stack
 
