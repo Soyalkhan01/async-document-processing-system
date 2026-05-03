@@ -9,12 +9,12 @@ import redis
 import os
 
 # =========================
-# ENV CONFIG (LOCAL + RENDER)
+# ENV (LOCAL + RENDER SAFE)
 # =========================
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
 # =========================
-# CELERY
+# CELERY SETUP
 # =========================
 celery = Celery(
     "tasks",
@@ -34,19 +34,17 @@ redis_client = redis.Redis.from_url(
 # PROGRESS FUNCTION
 # =========================
 def publish_progress(document_id, event, progress):
-    data = {
-        "document_id": document_id,
-        "event": event,
-        "progress": progress
-    }
-
     redis_client.publish(
         "document_progress",
-        json.dumps(data)
+        json.dumps({
+            "document_id": document_id,
+            "event": event,
+            "progress": progress
+        })
     )
 
 # =========================
-# TASK
+# MAIN TASK
 # =========================
 @celery.task
 def process_document(document_id):
@@ -54,9 +52,7 @@ def process_document(document_id):
     db: Session = SessionLocal()
 
     try:
-        document = db.query(Document).filter(
-            Document.id == document_id
-        ).first()
+        document = db.query(Document).filter(Document.id == document_id).first()
 
         if not document:
             return
@@ -65,16 +61,16 @@ def process_document(document_id):
         db.commit()
 
         publish_progress(document_id, "job_started", 10)
-        time.sleep(2)
+        time.sleep(1)
 
         publish_progress(document_id, "parsing_started", 30)
-        time.sleep(2)
+        time.sleep(1)
 
-        publish_progress(document_id, "parsing_done", 50)
-        time.sleep(2)
+        publish_progress(document_id, "parsing_completed", 50)
+        time.sleep(1)
 
         publish_progress(document_id, "extracting_fields", 70)
-        time.sleep(2)
+        time.sleep(1)
 
         extracted_data = {
             "title": document.filename,
@@ -84,8 +80,8 @@ def process_document(document_id):
 
         document.extracted_data = json.dumps(extracted_data)
 
-        publish_progress(document_id, "fields_done", 90)
-        time.sleep(2)
+        publish_progress(document_id, "fields_completed", 90)
+        time.sleep(1)
 
         document.status = "completed"
         db.commit()
