@@ -149,3 +149,17 @@ AI tools were used for:
 - debugging
 - architecture guidance
 - frontend/backend integration help
+
+---
+
+# 👨‍💻 Developer
+
+## Soyal Khan
+
+**Full Stack Developer**
+
+📧 Email: soyalmugal143@gmail.com
+
+💼 LinkedIn: https://linkedin.com/in/soyalkhan
+
+💻 GitHub: https://github.com/soyalkhan01
