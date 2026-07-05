@@ -18,11 +18,6 @@ Frontend:
 - TypeScript
 - Axios
 
-## Tech Stack
-
-Frontend:
-- React + TypeScript
-
 Backend:
 - FastAPI
 
