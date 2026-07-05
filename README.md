@@ -1,15 +1,11 @@
 # Async Document Processing Workflow System
 ## 🌐 Live Demo
 
-Frontend (if deployed):
+Frontend :
 https://async-document-frontend.onrender.com/
 
 Backend (Render API):
 https://async-document-processing-system-e0oc.onrender.com
-
-## 🎥 Demo Video
-
-https://drive.google.com/file/d/15iAkOkRMvo6B81IJi_deW5V53HqCjpYn/view?usp=drivesdk
 
 ## ⚙️ Tech Stack
 
@@ -124,16 +120,6 @@ npm run dev
 
 ---
 
-# Redis
-
-Run Redis server locally on:
-
-```txt
-localhost:6379
-```
-
----
-
 # Assumptions
 
 - Files are processed locally
@@ -147,15 +133,6 @@ localhost:6379
 - Polling used instead of WebSocket
 - Simple extraction logic
 - Local file storage
-
----
-
-# Limitations
-
-- No authentication
-- No Docker setup
-- No cloud deployment
-- No advanced OCR/AI extraction
 
 ---
 
